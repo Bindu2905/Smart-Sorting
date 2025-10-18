@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fruit Freshness Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <h1>🍎 Smart sorting: Identifying rotten fruits and vegetables 🍌</h1>
+
+  <div id="cameraWrap" class="hidden">
+    <video id="video" autoplay></video>
+    <canvas id="canvas" class="hidden"></canvas>
+    <div>
+      <button id="captureBtn">📸 Capture</button>
+      <button id="closeCamBtn">❌ Close Camera</button>
+    </div>
+  </div>
+
+  <div>
+    <button id="openCamBtn">📷 Open Camera</button>
+    <button id="voiceBtn">🎤 Voice Command</button>
+  </div>
+
+  <h3 id="status">Say “Open camera” or “Take image”</h3>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+  <script>
+    // ✅ CONTINUOUS LISTENING PATCH (Step 7)
+    // This keeps your same UI & capture logic intact, only makes voice recognition continuous
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SR();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.continuous = false; // one phrase at a time
+
+      const status = document.getElementById('status');
+
+      function speak(text) {
+        if ('speechSynthesis' in window) {
+          const u = new SpeechSynthesisUtterance(text);
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(u);
+        }
+      }
+
+      function restartListening() {
+        setTimeout(() => {
+          try {
+            recognition.start();
+            status.innerText = 'Listening again...';
+          } catch (err) {
+            console.warn('Restart error:', err);
+          }
+        }, 1500);
+      }
+
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript.toLowerCase();
+        status.innerText = 'Heard: ' + text;
+        speak('You said ' + text);
+        if (text.includes('open camera')) {
+          document.getElementById('openCamBtn').click();
+        } else if (text.includes('close camera') || text.includes('stop camera')) {
+          document.getElementById('closeCamBtn').click();
+        } else if (
+          text.includes('take image') ||
+          text.includes('capture') ||
+          text.includes('take picture') ||
+          text.includes('take photo')
+        ) {
+          document.getElementById('captureBtn').click();
+        } else {
+          speak('Command not recognized. Say "take image".');
+        }
+      };
+
+      recognition.onerror = (e) => {
+        console.log('Voice error:', e.error);
+        speak('Voice recognition error.');
+        restartListening();
+      };
+
+      recognition.onend = () => {
+        restartListening();
+      };
+
+      document.getElementById('voiceBtn').addEventListener('click', () => {
+        speak('Listening. Say "take image" to capture.');
+        recognition.start();
+      });
+    }
+  </script>
+</body>
+</html>
