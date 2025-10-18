@@ -7,5 +7,4 @@ pyttsx3
 SpeechRecognition
 gunicorn
 tensorflow==2.20.0
-keras
 scipy
